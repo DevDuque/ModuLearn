@@ -1,5 +1,7 @@
 import sqlite3
 
+# Documento responsável pela criação das tabelas do banco de dados (Cursos, Modulos, Alunos, Professores)
+
 # Conexão com o Banco de Dados
 conn = sqlite3.connect('ModuLearn.db')
 cursor = conn.cursor()
