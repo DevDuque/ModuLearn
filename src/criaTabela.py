@@ -16,7 +16,7 @@ def criaTabelas():
             frequencia INTEGER,
             nomeUsuario TEXT NOT NULL,
             senha TEXT NOT NULL,
-            cursoID INTEGER NOT NULL,
+            cursoID INTEGER,
             FOREIGN KEY (cursoID) REFERENCES cursos(cursoID)
         )
     ''')
@@ -25,6 +25,15 @@ def criaTabelas():
         CREATE TABLE IF NOT EXISTS professores (
             professorID INTEGER PRIMARY KEY AUTOINCREMENT,
             nomeProfessor TEXT NOT NULL,
+            nomeUsuario TEXT UNIQUE NOT NULL,
+            senha TEXT NOT NULL
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS administradores (
+            adminID INTEGER PRIMARY KEY AUTOINCREMENT,
+            nomeAdmin TEXT NOT NULL,
             nomeUsuario TEXT UNIQUE NOT NULL,
             senha TEXT NOT NULL
         )
@@ -49,5 +58,16 @@ def criaTabelas():
             tipo TEXT CHECK(tipo IN("EAD", "Presencial")),
             FOREIGN KEY (professorID) REFERENCES professores(professorID)
         ) 
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS requisicoes (
+            requisicaoID INTEGER PRIMARY KEY AUTOINCREMENT,
+            alunoID INTEGER,
+            cursoID INTEGER,
+            status TEXT CHECK(status IN ('pendente', 'aceito', 'rejeitado')) NOT NULL,
+            FOREIGN KEY (alunoID) REFERENCES alunos(alunoID),
+            FOREIGN KEY (cursoID) REFERENCES cursos(cursoID)
+        )
     ''')
     conn.close()
