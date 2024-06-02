@@ -29,7 +29,6 @@ def cadastrar_usuario(escolha):
     conn.commit()
     print("Usuário cadastrado com sucesso!")
 
-
 # Função para autenticar usuário
 def verifica_usuario():
     usuario = input("Usuário: ")
@@ -153,7 +152,7 @@ def professor_menu(professor):
                 print("Requisições pendentes:", requisicoes)
                 for requisicao in requisicoes:
                     aluno_id, curso_id = requisicao[1], requisicao[2]
-                    
+
                     cursor.execute("SELECT nomeAluno FROM alunos WHERE alunoID = ?", (aluno_id,))
                     aluno_nome = cursor.fetchone()[0]
 
@@ -283,4 +282,3 @@ def menu_principal():
 
 # Chamada da função do menu principal
 menu_principal()
-
