@@ -1,3 +1,4 @@
+from bson import ObjectId
 from pymongo import MongoClient
 import hashlib
 
@@ -6,9 +7,9 @@ client = MongoClient('mongodb://localhost:27017/')
 db = client['ModuLearn']
 
 # Criando índices para garantir a unicidade dos campos necessários
-db.alunos.create_index('nomeUsuario', unique=True)
-db.professores.create_index('nomeUsuario', unique=True)
-db.administradores.create_index('nomeUsuario', unique=True)
+db.alunos.create_index('alunoID', unique=True)
+db.professores.create_index('professorID', unique=True)
+db.administradores.create_index('adminID', unique=True)
 
 # Função para cadastro de usuário no BD
 def cadastrar_usuario(escolha):
@@ -19,7 +20,10 @@ def cadastrar_usuario(escolha):
     senhaHash = hashlib.sha256(senha.encode()).hexdigest()
 
     if escolha == 1:  # Aluno
+        aluno_id = str(ObjectId())
+
         db.alunos.insert_one({
+            'alunoID': aluno_id,
             'nomeAluno': nome,
             'nomeUsuario': usuario,
             'senha': senhaHash,
@@ -27,14 +31,20 @@ def cadastrar_usuario(escolha):
         })
 
     elif escolha == 2:  # Professor
+        professor_id = str(ObjectId())
+        
         db.professores.insert_one({
+            'professorID': professor_id,
             'nomeProfessor': nome,
             'nomeUsuario': usuario,
             'senha': senhaHash
         })
 
     elif escolha == 3:  # Administrador
+        admin_id = str(ObjectId())
+
         db.administradores.insert_one({
+            'adminID': admin_id,
             'nomeAdmin': nome,
             'nomeUsuario': usuario,
             'senha': senhaHash
@@ -81,23 +91,27 @@ def aluno_menu(aluno):
         escolha = int(input("Escolha uma opção: "))
 
         if escolha == 1:
-            curso = db.cursos.find_one({'cursoID': aluno['cursoID']})
+            curso = db.cursos.find_one({'_id': 0, 'cursoID': aluno['cursoID']})
             print("Cursos nos quais está registrado:", curso)
 
         elif escolha == 2:
-            cursos = db.cursos.find({}, {'_id': 0, 'cursoID': 1, 'nomeCurso': 1})
+            cursos = db.cursos.find({}, {'_id': 0, 'cursoID': 1, 'nomeCurso': 1}) 
             print("Cursos disponíveis:")
             for curso in cursos:
                 print(curso)
 
-            curso_id = int(input("Digite o ID do curso para solicitar inscrição: "))
-            db.requisicoes.insert_one({
-                'alunoID': aluno['_id'],
-                'cursoID': curso_id,
-                'status': 'pendente'
-            })
-            
-            print("Solicitação enviada.")
+            nome_curso = input("Digite o nome do curso para solicitar inscrição: ")
+        
+            curso = db.cursos.find_one({'nomeCurso': nome_curso})
+            if curso:
+                db.requisicoes.insert_one({
+                    'alunoID': aluno['alunoID'],
+                    'cursoID': curso['cursoID'],  # Usando o ID do curso encontrado
+                    'status': 'pendente'
+                })
+                print("Solicitação enviada.")
+            else:
+                print("Curso não encontrado.")
 
         elif escolha == 3:
             novo_nome = input("Novo nome: ")
@@ -122,50 +136,59 @@ def aluno_menu(aluno):
 def professor_menu(professor):
     while True:
         print("\nMenu do Professor:")
-        print("1. Ver todos os cursos")
+        print("1. Visualizar cursos que é responsável")
         print("2. Selecionar curso e ver alunos")
         print("3. Ver e gerenciar requisições")
         print("4. Sair")
         escolha = int(input("Escolha uma opção: "))
 
         if escolha == 1:
-            cursos = db.cursos.find()
-            print("Todos os cursos:")
+            cursos = db.cursos.find({'professorID': professor['professorID']})
+            print("Cursos que você é responsável:")
             for curso in cursos:
                 print(curso)
 
         elif escolha == 2:
-            curso_id = int(input("Digite o ID do curso para ver alunos: "))
-            alunos = db.alunos.find({'cursoID': curso_id})
-            print("Alunos no curso:")
-            for aluno in alunos:
-                print(aluno)
+            cursos = db.cursos.find({'professorID': professor['_id']})
+            print("Cursos que você é responsável:")
+            for curso in cursos:
+                print(curso)
 
-            modulos = db.modulos.find({'cursoID': curso_id})
-            print("Módulos do curso:")
-            for modulo in modulos:
-                print(modulo)
+            curso_id = input("Digite o ID do curso para ver alunos: ")
+            curso = db.cursos.find_one({'cursoID': curso_id, 'professorID': professor['professorID']})
+            if curso:
+                alunos = db.alunos.find({'cursoID': curso_id})
+                print("Alunos no curso:")
+                for aluno in alunos:
+                    print(aluno)
+            else:
+                print("Você não é responsável por este curso.")
 
         elif escolha == 3:
             requisicoes = db.requisicoes.find({'status': 'pendente'})
             if requisicoes:
                 print("Requisições pendentes:")
                 for requisicao in requisicoes:
-                    aluno = db.alunos.find_one({'_id': requisicao['alunoID']})
-                    curso = db.cursos.find_one({'cursoID': requisicao['cursoID']})
+                    aluno = db.alunos.find_one({'alunoID': requisicao['alunoID']})  # Corrigido para 'alunoID'
+                    if aluno:
+                        curso = db.cursos.find_one({'cursoID': requisicao['cursoID']})
+                        if curso:
+                            print(f"Requisição ID: {requisicao['_id']} - Aluno: {aluno['nomeAluno']} - Curso: {curso['nomeCurso']}")
+                            decisao = input("Aceitar (A) ou Rejeitar (R) esta solicitação? ").upper()
 
-                    print(f"Requisição ID: {requisicao['_id']} - Aluno: {aluno['nomeAluno']} - Curso: {curso['nomeCurso']}")
-                    decisao = input("Aceitar (A) ou Rejeitar (R) esta solicitação? ").upper()
+                            if decisao == 'A':
+                                db.requisicoes.update_one({'_id': requisicao['_id']}, {'$set': {'status': 'aceito'}})
+                                db.alunos.update_one({'alunoID': requisicao['alunoID']}, {'$set': {'cursoID': requisicao['cursoID']}})
 
-                    if decisao == 'A':
-                        db.requisicoes.update_one({'_id': requisicao['_id']}, {'$set': {'status': 'aceito'}})
-                        db.alunos.update_one({'_id': requisicao['alunoID']}, {'$set': {'cursoID': requisicao['cursoID']}})
-
-                    elif decisao == 'R':
-                        db.requisicoes.update_one({'_id': requisicao['_id']}, {'$set': {'status': 'rejeitado'}})
-
+                            elif decisao == 'R':
+                                db.requisicoes.update_one({'_id': requisicao['_id']}, {'$set': {'status': 'rejeitado'}})
+                        else:
+                            print("Curso não encontrado.")
+                    else:
+                        print("Aluno não encontrado.")
             else:
                 print("Não há requisições pendentes.")
+
 
         elif escolha == 4:
             break
@@ -177,37 +200,36 @@ def professor_menu(professor):
 def admin_menu(admin):
     while True:
         print("\nMenu do Administrador:")
-        print("1. Ver todos os cursos com o professor responsável")
-        print("2. Adicionar novo curso")
-        print("3. Visualizar curso")
+        print("1. Ver todos os professores")
+        print("2. Visualizar cursos")
+        print("3. Adicionar novo curso")
         print("4. Editar curso")
         print("5. Deletar curso")
         print("6. Sair")
         escolha = int(input("Escolha uma opção: "))
 
         if escolha == 1:
-            cursos = db.cursos.aggregate([
-                {
-                    '$lookup': {
-                        'from': 'professores',
-                        'localField': 'professorID',
-                        'foreignField': '_id',
-                        'as': 'professor'
-                    }
-                }
-            ])
-            print("Cursos com professor responsável:")
-            for curso in cursos:
-                professor = curso['professor'][0]['nomeProfessor'] if curso['professor'] else 'N/A'
-                print(f"Curso: {curso['nomeCurso']} - Professor: {professor}")
+            print("Professores ativos no banco:")
+            professores = db.professores.find()
+            for professor in professores:
+                print(professor)
 
         elif escolha == 2:
+            cursos = db.cursos.find()
+            print("Todos os cursos:")
+            for curso in cursos:
+                print(curso)
+
+        elif escolha == 3:
+            curso_id = str(ObjectId())
+            
             nome_curso = input("Nome do novo curso: ")
             duracao = int(input("Duração do curso (45, 60, 100): "))
             tipo = input("Tipo do curso (EAD ou Presencial): ")
             professor_id = input("ID do professor responsável pelo curso: ")
 
             db.cursos.insert_one({
+                'cursoID': curso_id,
                 'nomeCurso': nome_curso,
                 'duracao': duracao,
                 'professorID': professor_id,
@@ -215,20 +237,16 @@ def admin_menu(admin):
             })
             print("Novo curso adicionado com sucesso!")
 
-        elif escolha == 3:
-            curso_id = int(input("Digite o ID do curso para visualizar: "))
-            curso = db.cursos.find_one({'cursoID': curso_id})
-            print("Detalhes do curso:", curso)
 
         elif escolha == 4:
-            curso_id = int(input("Digite o ID do curso para editar: "))
+            curso_id = input("Digite o ID do curso para editar: ")
             novo_nome = input("Novo nome do curso: ")
 
             db.cursos.update_one({'cursoID': curso_id}, {'$set': {'nomeCurso': novo_nome}})
             print("Nome do curso atualizado.")
 
         elif escolha == 5:
-            curso_id = int(input("Digite o ID do curso para deletar: "))
+            curso_id = input("Digite o ID do curso para deletar: ")
             db.cursos.delete_one({'cursoID': curso_id})
             print("Curso deletado com sucesso.")
 

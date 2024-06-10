@@ -120,14 +120,14 @@ def aluno_menu(aluno):
 def professor_menu(professor):
     while True:
         print("\nMenu do Professor:")
-        print("1. Ver todos os cursos")
+        print("1. Ver os cursos que é responsável")
         print("2. Selecionar curso e ver alunos")
         print("3. Ver e gerenciar requisições")
         print("4. Sair")
         escolha = int(input("Escolha uma opção: "))
 
         if escolha == 1:
-            cursor.execute("SELECT * FROM cursos")
+            cursor.execute("SELECT * FROM cursos WHERE professorID = ?", (professor[0],))
             cursos = cursor.fetchall()
             print("Todos os cursos:", cursos)
 
@@ -183,24 +183,33 @@ def professor_menu(professor):
 def admin_menu(admin):
     while True:
         print("\nMenu do Administrador:")
-        print("1. Ver todos os cursos com o professor responsável")
-        print("2. Adicionar novo curso")
-        print("3. Visualizar curso")
+        print("1. Ver todos os cursos")
+        print("2. Ver todos professores")
+        print("3. Adicionar novo curso")
         print("4. Editar curso")
         print("5. Deletar curso")
         print("6. Sair")
         escolha = int(input("Escolha uma opção: "))
 
         if escolha == 1:
-            cursor.execute("SELECT cursos.*, professores.nomeProfessor FROM cursos INNER JOIN professores ON cursos.professorID = professores.professorID")
+            print("Todos os cursos:")
+            cursor.execute("SELECT * FROM cursos")
 
             cursos = cursor.fetchall()
-
-            print("Cursos com professor responsável:")
+            
             for curso in cursos:
                 print(curso)
 
         elif escolha == 2:
+            print("Todos os professores:")
+            cursor.execute("SELECT * FROM professores")
+
+            cursos = cursor.fetchall()
+            
+            for curso in cursos:
+                print(curso)
+
+        elif escolha == 3:
             nome_curso = input("Nome do novo curso: ")
 
             duracao = int(input("Duração do curso (45, 60, 100): "))
@@ -213,15 +222,6 @@ def admin_menu(admin):
 
             conn.commit()
             print("Novo curso adicionado com sucesso!")
-
-        elif escolha == 3:
-            curso_id = int(input("Digite o ID do curso para visualizar: "))
-            cursor.execute("SELECT * FROM cursos WHERE cursoID = ?", (curso_id,))
-
-            curso = cursor.fetchone()
-
-            print("Detalhes do curso:")
-            print(curso)
 
         elif escolha == 4:
             curso_id = int(input("Digite o ID do curso para editar: "))
