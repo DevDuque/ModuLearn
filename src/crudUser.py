@@ -1,5 +1,7 @@
 import sqlite3
 import hashlib
+from uuid import uuid4
+
 import criaTabela
 
 # Criando as tabelas antes de executar o CRUD
@@ -18,13 +20,28 @@ def cadastrar_usuario(escolha):
     senhaHash = hashlib.sha256(senha.encode()).hexdigest()
 
     if escolha == 1:  # Aluno
-        cursor.execute("INSERT INTO alunos (nomeAluno, nomeUsuario, senha) VALUES (?, ?, ?)", (nome, usuario, senhaHash))
+        aluno_id = str(uuid4())
 
+        cursor.execute('''
+            INSERT INTO alunos (alunoID, nomeAluno, nomeUsuario, senha, cursoID)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (aluno_id, nome, usuario, senhaHash, None))
+        
     elif escolha == 2:  # Professor
-        cursor.execute("INSERT INTO professores (nomeProfessor, nomeUsuario, senha) VALUES (?, ?, ?)", (nome, usuario, senhaHash))
+        professor_id = str(uuid4())
+
+        cursor.execute('''
+            INSERT INTO professores (professorID, nomeProfessor, nomeUsuario, senha)
+            VALUES (?, ?, ?, ?)
+        ''', (professor_id, nome, usuario, senhaHash))
 
     elif escolha == 3:  # Administrador
-        cursor.execute("INSERT INTO administradores (nomeAdmin, nomeUsuario, senha) VALUES (?, ?, ?)", (nome, usuario, senhaHash))
+        admin_id = str(uuid4())
+
+        cursor.execute('''
+            INSERT INTO administradores (adminID, nomeAdmin, nomeUsuario, senha)
+            VALUES (?, ?, ?, ?)
+        ''', (admin_id, nome, usuario, senhaHash))
 
     conn.commit()
     print("Usuário cadastrado com sucesso!")
@@ -36,13 +53,19 @@ def verifica_usuario():
 
     senhaHash = hashlib.sha256(senha.encode()).hexdigest()
 
-    cursor.execute("SELECT * FROM alunos WHERE nomeUsuario = ? AND senha = ?", (usuario, senhaHash))
+    cursor.execute('''
+        SELECT * FROM alunos WHERE nomeUsuario = ? AND senha = ?
+    ''', (usuario, senhaHash))
     aluno = cursor.fetchone()
 
-    cursor.execute("SELECT * FROM professores WHERE nomeUsuario = ? AND senha = ?", (usuario, senhaHash))
+    cursor.execute('''
+        SELECT * FROM professores WHERE nomeUsuario = ? AND senha = ?
+    ''', (usuario, senhaHash))
     professor = cursor.fetchone()
 
-    cursor.execute("SELECT * FROM administradores WHERE nomeUsuario = ? AND senha = ?", (usuario, senhaHash))
+    cursor.execute('''
+        SELECT * FROM administradores WHERE nomeUsuario = ? AND senha = ?
+    ''', (usuario, senhaHash))
     admin = cursor.fetchone()
 
     if aluno:
@@ -73,39 +96,55 @@ def aluno_menu(aluno):
         escolha = int(input("Escolha uma opção: "))
 
         if escolha == 1:
-            cursor.execute("SELECT * FROM cursos WHERE cursoID = ?", (aluno[6],))
-
-            cursos = cursor.fetchall()
-            print("Cursos nos quais está registrado:", cursos)
+            cursor.execute('''
+                SELECT * FROM cursos WHERE cursoID = ?
+            ''', (aluno[6],))  # aluno[6] é cursoID
+            curso = cursor.fetchone()
+            print("Cursos nos quais está registrado:", curso)
 
         elif escolha == 2:
-            cursor.execute("SELECT cursoID, nomeCurso FROM cursos")
+            cursor.execute('''
+                SELECT cursoID, nomeCurso FROM cursos
+            ''')
             cursos = cursor.fetchall()
-
             print("Cursos disponíveis:")
             for curso in cursos:
                 print(curso)
 
-            curso_id = int(input("Digite o ID do curso para solicitar inscrição: "))
-
-            cursor.execute("INSERT INTO requisicoes (alunoID, cursoID, status) VALUES (?, ?, 'pendente')", (aluno[0], curso_id))
-            
-            conn.commit()
-            print("Solicitação enviada.")
+            nome_curso = input("Digite o nome do curso para solicitar inscrição: ")
+        
+            cursor.execute('''
+                SELECT cursoID FROM cursos WHERE nomeCurso = ?
+            ''', (nome_curso,))
+            curso = cursor.fetchone()
+            if curso:
+                requisicao_id = str(uuid4())
+                cursor.execute('''
+                    INSERT INTO requisicoes (requisicaoID, alunoID, cursoID, status)
+                    VALUES (?, ?, ?, ?)
+                ''', (requisicao_id, aluno[0], curso[0], 'pendente'))
+                conn.commit()
+                print("Solicitação enviada.")
+            else:
+                print("Curso não encontrado.")
 
         elif escolha == 3:
             novo_nome = input("Novo nome: ")
             nova_senha = input("Nova senha: ")
-
             nova_senha_hash = hashlib.sha256(nova_senha.encode()).hexdigest()
-            cursor.execute("UPDATE alunos SET nomeAluno = ?, senha = ? WHERE alunoID = ?", (novo_nome, nova_senha_hash, aluno[0]))
 
+            cursor.execute('''
+                UPDATE alunos
+                SET nomeAluno = ?, senha = ?
+                WHERE alunoID = ?
+            ''', (novo_nome, nova_senha_hash, aluno[0]))  # aluno[0] é alunoID
             conn.commit()
             print("Dados atualizados.")
 
         elif escolha == 4:
-            cursor.execute("DELETE FROM alunos WHERE alunoID = ?", (aluno[0],))
-
+            cursor.execute('''
+                DELETE FROM alunos WHERE alunoID = ?
+            ''', (aluno[0],))  # aluno[0] é alunoID
             conn.commit()
             print("Conta deletada.")
             break
@@ -120,56 +159,87 @@ def aluno_menu(aluno):
 def professor_menu(professor):
     while True:
         print("\nMenu do Professor:")
-        print("1. Ver os cursos que é responsável")
+        print("1. Visualizar cursos que é responsável")
         print("2. Selecionar curso e ver alunos")
         print("3. Ver e gerenciar requisições")
         print("4. Sair")
         escolha = int(input("Escolha uma opção: "))
 
         if escolha == 1:
-            cursor.execute("SELECT * FROM cursos WHERE professorID = ?", (professor[0],))
+            cursor.execute('''
+                SELECT * FROM cursos WHERE professorID = ?
+            ''', (professor[0],))  # professor[0] é professorID
             cursos = cursor.fetchall()
-            print("Todos os cursos:", cursos)
+            print("Cursos que você é responsável:")
+            for curso in cursos:
+                print(curso)
 
         elif escolha == 2:
-            curso_id = int(input("Digite o ID do curso para ver alunos: "))
-            cursor.execute("SELECT * FROM alunos WHERE cursoID = ?", (curso_id,))
-            
-            alunos = cursor.fetchall()
+            cursor.execute('''
+                SELECT cursoID, nomeCurso FROM cursos WHERE professorID = ?
+            ''', (professor[0],))  # professor[0] é professorID
+            cursos = cursor.fetchall()
+            print("Cursos que você é responsável:")
+            for curso in cursos:
+                print(curso)
 
-            print("Alunos no curso:", alunos)
-
-            cursor.execute("SELECT * FROM modulos WHERE cursoID = ?", (curso_id,))
-            modulos = cursor.fetchall()
-
-            print("Módulos do curso:", modulos)
+            curso_id = input("Digite o ID do curso para ver alunos: ")
+            cursor.execute('''
+                SELECT * FROM cursos WHERE cursoID = ? AND professorID = ?
+            ''', (curso_id, professor[0]))  # professor[0] é professorID
+            curso = cursor.fetchone()
+            if curso:
+                cursor.execute('''
+                    SELECT * FROM alunos WHERE cursoID = ?
+                ''', (curso_id,))
+                alunos = cursor.fetchall()
+                print("Alunos no curso:")
+                for aluno in alunos:
+                    print(aluno)
+            else:
+                print("Você não é responsável por este curso.")
 
         elif escolha == 3:
-            cursor.execute("SELECT * FROM requisicoes WHERE status = 'pendente'")
+            cursor.execute('''
+                SELECT * FROM requisicoes WHERE status = 'pendente'
+            ''')
             requisicoes = cursor.fetchall()
-
             if requisicoes:
-                print("Requisições pendentes:", requisicoes)
+                print("Requisições pendentes:")
                 for requisicao in requisicoes:
-                    aluno_id, curso_id = requisicao[1], requisicao[2]
+                    cursor.execute('''
+                        SELECT nomeAluno FROM alunos WHERE alunoID = ?
+                    ''', (requisicao[1],))  # requisicao[1] é alunoID
+                    aluno = cursor.fetchone()
+                    cursor.execute('''
+                        SELECT nomeCurso FROM cursos WHERE cursoID = ?
+                    ''', (requisicao[2],))  # requisicao[2] é cursoID
+                    curso = cursor.fetchone()
+                    if aluno and curso:
+                        print(f"Requisição ID: {requisicao[0]} - Aluno: {aluno[0]} - Curso: {curso[0]}")
+                        decisao = input("Aceitar (A) ou Rejeitar (R) esta solicitação? ").upper()
 
-                    cursor.execute("SELECT nomeAluno FROM alunos WHERE alunoID = ?", (aluno_id,))
-                    aluno_nome = cursor.fetchone()[0]
+                        if decisao == 'A':
+                            cursor.execute('''
+                                UPDATE requisicoes
+                                SET status = 'aceito'
+                                WHERE requisicaoID = ?
+                            ''', (requisicao[0],))  # requisicao[0] é requisicaoID
+                            cursor.execute('''
+                                UPDATE alunos
+                                SET cursoID = ?
+                                WHERE alunoID = ?
+                            ''', (requisicao[2], requisicao[1]))  # requisicao[2] é cursoID, requisicao[1] é alunoID
 
-                    cursor.execute("SELECT nomeCurso FROM cursos WHERE cursoID = ?", (curso_id,))
-                    curso_nome = cursor.fetchone()[0]
-
-                    print(f"Requisição ID: {requisicao[0]} - Aluno: {aluno_nome} - Curso: {curso_nome}")
-
-                    decisao = input("Aceitar (A) ou Rejeitar (R) esta solicitação? ").upper()
-                    if decisao == 'A':
-                        cursor.execute("UPDATE requisicoes SET status = 'aceito' WHERE requisicaoID = ?", (requisicao[0],))
-                        cursor.execute("UPDATE alunos SET cursoID = ? WHERE alunoID = ?", (curso_id, aluno_id))
-
-                    elif decisao == 'R':
-                        cursor.execute("UPDATE requisicoes SET status = 'rejeitado' WHERE requisicaoID = ?", (requisicao[0],))
-
-                    conn.commit()
+                        elif decisao == 'R':
+                            cursor.execute('''
+                                UPDATE requisicoes
+                                SET status = 'rejeitado'
+                                WHERE requisicaoID = ?
+                            ''', (requisicao[0],))  # requisicao[0] é requisicaoID
+                        conn.commit()
+                    else:
+                        print("Aluno ou curso não encontrado.")
             else:
                 print("Não há requisições pendentes.")
 
@@ -183,8 +253,8 @@ def professor_menu(professor):
 def admin_menu(admin):
     while True:
         print("\nMenu do Administrador:")
-        print("1. Ver todos os cursos")
-        print("2. Ver todos professores")
+        print("1. Ver todos os professores")
+        print("2. Visualizar cursos")
         print("3. Adicionar novo curso")
         print("4. Editar curso")
         print("5. Deletar curso")
@@ -192,51 +262,54 @@ def admin_menu(admin):
         escolha = int(input("Escolha uma opção: "))
 
         if escolha == 1:
-            print("Todos os cursos:")
-            cursor.execute("SELECT * FROM cursos")
-
-            cursos = cursor.fetchall()
-            
-            for curso in cursos:
-                print(curso)
+            print("Professores ativos no banco:")
+            cursor.execute('''
+                SELECT * FROM professores
+            ''')
+            professores = cursor.fetchall()
+            for professor in professores:
+                print(professor)
 
         elif escolha == 2:
-            print("Todos os professores:")
-            cursor.execute("SELECT * FROM professores")
-
+            cursor.execute('''
+                SELECT * FROM cursos
+            ''')
             cursos = cursor.fetchall()
-            
+            print("Todos os cursos:")
             for curso in cursos:
                 print(curso)
 
         elif escolha == 3:
+            curso_id = str(uuid4())
             nome_curso = input("Nome do novo curso: ")
-
             duracao = int(input("Duração do curso (45, 60, 100): "))
-
             tipo = input("Tipo do curso (EAD ou Presencial): ")
+            professor_id = input("ID do professor responsável pelo curso: ")
 
-            professor_id = int(input("ID do professor responsável pelo curso: "))
-
-            cursor.execute("INSERT INTO cursos (nomeCurso, duracao, professorID, tipo) VALUES (?, ?, ?, ?)", (nome_curso, duracao, professor_id, tipo))
-
+            cursor.execute('''
+                INSERT INTO cursos (cursoID, nomeCurso, duracao, professorID, tipo)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (curso_id, nome_curso, duracao, professor_id, tipo))
             conn.commit()
             print("Novo curso adicionado com sucesso!")
 
         elif escolha == 4:
-            curso_id = int(input("Digite o ID do curso para editar: "))
+            curso_id = input("Digite o ID do curso para editar: ")
             novo_nome = input("Novo nome do curso: ")
 
-            cursor.execute("UPDATE cursos SET nomeCurso = ? WHERE cursoID = ?", (novo_nome, curso_id))
-
+            cursor.execute('''
+                UPDATE cursos
+                SET nomeCurso = ?
+                WHERE cursoID = ?
+            ''', (novo_nome, curso_id))
             conn.commit()
             print("Nome do curso atualizado.")
 
         elif escolha == 5:
-            curso_id = int(input("Digite o ID do curso para deletar: "))
-
-            cursor.execute("DELETE FROM cursos WHERE cursoID = ?", (curso_id,))
-
+            curso_id = input("Digite o ID do curso para deletar: ")
+            cursor.execute('''
+                DELETE FROM cursos WHERE cursoID = ?
+            ''', (curso_id,))
             conn.commit()
             print("Curso deletado com sucesso.")
 
@@ -282,3 +355,4 @@ def menu_principal():
 
 # Chamada da função do menu principal
 menu_principal()
+conn.close()

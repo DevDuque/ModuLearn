@@ -60,7 +60,9 @@ def verifica_usuario():
     senhaHash = hashlib.sha256(senha.encode()).hexdigest()
 
     aluno = db.alunos.find_one({'nomeUsuario': usuario, 'senha': senhaHash})
+
     professor = db.professores.find_one({'nomeUsuario': usuario, 'senha': senhaHash})
+    
     admin = db.administradores.find_one({'nomeUsuario': usuario, 'senha': senhaHash})
 
     if aluno:

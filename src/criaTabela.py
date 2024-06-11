@@ -10,20 +10,20 @@ cursor = conn.cursor()
 def criaTabelas():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS alunos (
-            alunoID INTEGER PRIMARY KEY AUTOINCREMENT,
+            alunoID TEXT PRIMARY KEY,
             nomeAluno TEXT NOT NULL,
             nota INTEGER,
             frequencia INTEGER,
             nomeUsuario TEXT NOT NULL,
             senha TEXT NOT NULL,
-            cursoID INTEGER,
+            cursoID TEXT,
             FOREIGN KEY (cursoID) REFERENCES cursos(cursoID)
         )
     ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS professores (
-            professorID INTEGER PRIMARY KEY AUTOINCREMENT,
+            professorID TEXT PRIMARY KEY,
             nomeProfessor TEXT NOT NULL,
             nomeUsuario TEXT UNIQUE NOT NULL,
             senha TEXT NOT NULL
@@ -32,7 +32,7 @@ def criaTabelas():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS administradores (
-            adminID INTEGER PRIMARY KEY AUTOINCREMENT,
+            adminID TEXT PRIMARY KEY,
             nomeAdmin TEXT NOT NULL,
             nomeUsuario TEXT UNIQUE NOT NULL,
             senha TEXT NOT NULL
@@ -41,20 +41,20 @@ def criaTabelas():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS modulos (
-                moduloID INTEGER PRIMARY KEY AUTOINCREMENT,
+                moduloID TEXT PRIMARY KEY,
                 numeroModulo INTEGER,
                 nomeModulo TEXT NOT NULL,
-                cursoID INTEGER,
+                cursoID TEXT,
                 FOREIGN KEY (cursoID) REFERENCES cursos(cursoID)
         )
     ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS cursos (
-            cursoID INTEGER PRIMARY KEY AUTOINCREMENT,
+            cursoID TEXT PRIMARY KEY,
             nomeCurso TEXT NOT NULL,
             duracao INTEGER CHECK(duracao IN(45,60,100)) NOT NULL,
-            professorID INTEGER NOT NULL,
+            professorID TEXT NOT NULL,
             tipo TEXT CHECK(tipo IN("EAD", "Presencial")),
             FOREIGN KEY (professorID) REFERENCES professores(professorID)
         ) 
@@ -62,9 +62,9 @@ def criaTabelas():
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS requisicoes (
-            requisicaoID INTEGER PRIMARY KEY AUTOINCREMENT,
-            alunoID INTEGER,
-            cursoID INTEGER,
+            requisicaoID TEXT PRIMARY KEY,
+            alunoID TEXT,
+            cursoID TEXT,
             status TEXT CHECK(status IN ('pendente', 'aceito', 'rejeitado')) NOT NULL,
             FOREIGN KEY (alunoID) REFERENCES alunos(alunoID),
             FOREIGN KEY (cursoID) REFERENCES cursos(cursoID)
