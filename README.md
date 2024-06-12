@@ -4,7 +4,7 @@ ModuLearn é uma plataforma de gestão educacional flexível e altamente escalá
 
 <p align="center">
 
-![ModuLearnIMG](public/ModuLearn.png)
+![ModuLearnIMG](public/ModuLearn2.png)
 
 </p>
 
