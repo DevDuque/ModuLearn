@@ -19,7 +19,7 @@ ModuLearn é uma plataforma de gestão educacional flexível e altamente escalá
 * **Escalabilidade:** Com uma arquitetura escalável, o ModuLearn pode se adaptar facilmente ao crescimento e às mudanças nas necessidades da instituição.
 
 # 2. Instalação & Configuração:
-* Para a execução dos códigos, será necessário a instalação do [Python mais recente](https://www.python.org/downloads/) e do [Docker mais recente[](https://www.docker.com/products/docker-desktop/).
+Para a execução dos códigos, será necessário a instalação do [Python mais recente](https://www.python.org/downloads/) e do [Docker mais recente[](https://www.docker.com/products/docker-desktop/).
 
 Com isso, podemos executar o seguinte código para a execução do programa, identificado por **crudUser.py**, dentro de SRC
   
